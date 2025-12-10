@@ -41,12 +41,8 @@ const admin = require("firebase-admin");
 const { Resend } = require("resend");
 const { v4: uuidv4 } = require("uuid");
 
-const serviceAccount = require("./medibot-457514-firebase-adminsdk-fbsvc-4a9a9554c2.json");
 
- admin.initializeApp({
-   credential: admin.credential.cert(serviceAccount),
-   databaseURL: "https://medibot-457514.firebaseio.com"
- });
+ admin.initializeApp();
 
 const resend = new Resend(functions.config().resend.api_key);
 

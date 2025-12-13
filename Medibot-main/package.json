@@ -69,6 +69,7 @@
     "nodemailer": "^7.0.5",
     "pg-sdk-node": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-sdk-node/releases/v2/phonepe-pg-sdk-node.tgz",
     "python-shell": "^5.0.0",
+    "razorpay": "^2.9.6",
     "react": "^18.3.1",
     "react-day-picker": "8.10.1",
     "react-dom": "^18.3.1",

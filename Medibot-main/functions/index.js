@@ -24,11 +24,11 @@ exports.sendMedicationReminders = functions.pubsub.schedule("* * * * *").onRun(a
       });
     }
 
-    // Send email reminder (reuse your existing email logic)
+    // Send email reminder (using Nodemailer)
     if (email) {
-      await resend.emails.send({
-        from: "MediBot <no-reply@your-domain.com>",
-        to: [email],
+      await transporter.sendMail({
+        from: "MediBot <mohan.trrev@gmail.com>",
+        to: email,
         subject: "Medication Reminder",
         text: `Time to take your medicine: ${medicineName}`,
         html: `<div><h2>Medication Reminder</h2><p>Time to take your medicine: <strong>${medicineName}</strong></p></div>`,
@@ -42,9 +42,17 @@ const { Resend } = require("resend");
 const { v4: uuidv4 } = require("uuid");
 
 
- admin.initializeApp();
+admin.initializeApp();
 
-const resend = new Resend(functions.config().resend.api_key);
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "mohan.trrev@gmail.com",
+    pass: "dfsj kubv wfme gjpk",
+  },
+});
 
 // Helper function to generate a token and store it
 async function generateAndStoreToken(appointmentId, action) {
@@ -138,11 +146,19 @@ exports.sendAppointmentConfirmationAndReview = functions.firestore
 
     try {
       // Send user confirmation email
-      await resend.emails.send(userEmailData);
+      await transporter.sendMail({
+        ...userEmailData,
+        from: "MediBot <mohan.trrev@gmail.com>",
+        to: userEmail
+      });
       console.log(`Confirmation email sent to ${userEmail} for appointment ${appointmentId}`);
 
       // Send admin review request email
-      await resend.emails.send(adminEmailData);
+      await transporter.sendMail({
+        ...adminEmailData,
+        from: "MediBot <mohan.trrev@gmail.com>",
+        to: "sujayss762@gmail.com"
+      });
       console.log(`Review request email sent to sujayss762@gmail.com for appointment ${appointmentId}`);
     } catch (error) {
       console.error("Error sending email:", error);
@@ -218,7 +234,11 @@ exports.sendAppointmentStatusEmail = functions.firestore
     };
 
     try {
-      await resend.emails.send(emailData);
+      await transporter.sendMail({
+        ...emailData,
+        from: "MediBot <mohan.trrev@gmail.com>",
+        to: email
+      });
       console.log(`Email sent to ${email} for appointment ${context.params.appointmentId} with status ${status}`);
     } catch (error) {
       console.error("Error sending email:", error);

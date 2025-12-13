@@ -3,13 +3,25 @@ import admin from "firebase-admin";
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
+  try {
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+    if (projectId && clientEmail && privateKey) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
+      });
+    } else {
+      console.warn("Firebase Admin environment variables missing in /api/schedule-reminder");
+    }
+  } catch (error) {
+    console.error("Firebase Admin initialization failed in /api/schedule-reminder:", error);
+  }
 }
 
 const db = admin.firestore();
@@ -37,14 +49,14 @@ export async function POST(req: Request) {
     const existingReminders = await db.collection("scheduledReminders")
       .where("medicationId", "==", medicationId)
       .get();
-    
+
     const deletePromises = existingReminders.docs.map(doc => doc.ref.delete());
     await Promise.all(deletePromises);
 
     // Schedule new reminders for each time
     const schedulePromises = validTimes.map(async (time: string) => {
       const [hours, minutes] = time.split(":").map(Number);
-      
+
       // Create reminder document
       const reminderData = {
         userId,
@@ -64,7 +76,7 @@ export async function POST(req: Request) {
       await db.collection("scheduledReminders").doc(reminderId).set(reminderData);
     });
 
-  await Promise.all(schedulePromises);
+    await Promise.all(schedulePromises);
 
     return NextResponse.json({ success: true, message: "Reminders scheduled successfully" });
   } catch (error) {
@@ -83,12 +95,12 @@ function getNextScheduledTime(hours: number, minutes: number): Date {
   const now = new Date();
   const scheduled = new Date();
   scheduled.setHours(hours, minutes, 0, 0);
-  
+
   // If time has passed today, schedule for tomorrow
   if (scheduled <= now) {
     scheduled.setDate(scheduled.getDate() + 1);
   }
-  
+
   return scheduled;
 }
 
@@ -104,7 +116,7 @@ export async function DELETE(req: Request) {
     const reminders = await db.collection("scheduledReminders")
       .where("medicationId", "==", medicationId)
       .get();
-    
+
     const deletePromises = reminders.docs.map(doc => doc.ref.delete());
     await Promise.all(deletePromises);
 

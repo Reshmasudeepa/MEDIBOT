@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import React from "react";
 import { SmoothNavigator, GlobalSkeletonLoader } from "../components/SmoothNavigator";
 import { LoadingProvider } from "@/components/LoadingContext";
@@ -74,8 +74,6 @@ export const metadata: Metadata = {
     creator: '@medibot',
     images: ['/main.png'],
   },
-  themeColor: "#00acc1",
-  viewport: "width=device-width, initial-scale=1.0",
   manifest: "/manifest.json",
   icons: {
     icon: "/logo.png",
@@ -100,13 +98,19 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#00acc1",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
-        
+
         {/* Google Analytics */}
         <script
           async
@@ -122,7 +126,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-        
+
         {/* Structured Data for Organization */}
         <script
           type="application/ld+json"
@@ -147,7 +151,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })
           }}
         />
-        
+
         {/* Structured Data for WebSite */}
         <script
           type="application/ld+json"
@@ -166,7 +170,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })
           }}
         />
-        
+
         {/* Structured Data for SoftwareApplication */}
         <script
           type="application/ld+json"
@@ -194,23 +198,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </Head>
-  <body suppressHydrationWarning className={`${inter.className} bg-background text-foreground min-h-screen fade-in`} style={{ zIndex: 0 }}>
-  <LoadingProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SmoothNavigator>
-            <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen"><GlobalSkeletonLoader /></div>}>
-              {children}
-            </React.Suspense>
-          </SmoothNavigator>
-          <Toaster position="top-right" />
-          <CookieConsent />
-        </ThemeProvider>
-  </LoadingProvider>
+      <body suppressHydrationWarning className={`${inter.className} bg-background text-foreground min-h-screen fade-in`} style={{ zIndex: 0 }}>
+        <LoadingProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SmoothNavigator>
+              <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen"><GlobalSkeletonLoader /></div>}>
+                {children}
+              </React.Suspense>
+            </SmoothNavigator>
+            <Toaster position="top-right" />
+            <CookieConsent />
+          </ThemeProvider>
+        </LoadingProvider>
       </body>
     </html>
   );

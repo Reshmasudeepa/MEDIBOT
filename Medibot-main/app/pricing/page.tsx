@@ -93,7 +93,7 @@ export default function PricingPage() {
   // Check for payment status in URL params
   useEffect(() => {
     if (!searchParams) return;
-    
+
     const status = searchParams.get('status');
     const transactionId = searchParams.get('transactionId');
     const message = searchParams.get('message');
@@ -140,11 +140,11 @@ export default function PricingPage() {
             timestamp: Date.now()
           }));
         }
-        
+
         // Redirect to PhonePe payment page
         window.location.href = result.data.redirectUrl;
       } else {
-        console.error('Payment initiation failed:', result);
+        console.error('Payment initiation failed:', JSON.stringify(result, null, 2));
         toast.error(result.message || 'Failed to initiate payment. Please try again.');
       }
     } catch (error: any) {
@@ -169,7 +169,7 @@ export default function PricingPage() {
           </div>
         </div>
       )}
-      
+
       {paymentStatus === 'failed' && (
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function PricingPage() {
           <strong>New:</strong> Compare features side-by-side to see exactly what's included in each plan. From basic AI models to advanced prescription analysis.
         </div>
       </div>
-      
+
       <div className="flex flex-col lg:flex-row gap-8 justify-center items-stretch max-w-7xl mx-auto">
         {plans.map((plan) => (
           <div
@@ -204,7 +204,7 @@ export default function PricingPage() {
                 Most Popular
               </div>
             )}
-            
+
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold mb-2 text-blue-700 dark:text-blue-300">{plan.name}</h2>
               <div className="flex items-baseline justify-center gap-1 mb-2">
@@ -247,7 +247,7 @@ export default function PricingPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="mt-auto pt-4">
               {plan.cta === 'Current Plan' ? (
                 <button className="w-full bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg cursor-default flex items-center justify-center gap-2" disabled>
@@ -255,7 +255,7 @@ export default function PricingPage() {
                   {plan.cta}
                 </button>
               ) : plan.cta === 'Upgrade to PRO' ? (
-                <button 
+                <button
                   onClick={() => handlePhonePePayment('Premium', 99)}
                   disabled={loading === 'Premium'}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -274,7 +274,7 @@ export default function PricingPage() {
                 </button>
               ) : plan.cta === 'Contact Sales' ? (
                 <div className="flex flex-col gap-2">
-                  <button 
+                  <button
                     onClick={() => handlePhonePePayment('Enterprise', 799)}
                     disabled={loading === 'Enterprise'}
                     className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -291,8 +291,8 @@ export default function PricingPage() {
                       </>
                     )}
                   </button>
-                  <Link 
-                    href="/contact" 
+                  <Link
+                    href="/contact"
                     className="text-center text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     or Contact Sales
@@ -303,7 +303,7 @@ export default function PricingPage() {
           </div>
         ))}
       </div>
-      
+
       <div className="max-w-2xl mx-auto mt-12 text-center text-gray-500 dark:text-gray-400 text-sm">
         <p>* All prices are inclusive of taxes. Cancel anytime. For teams and custom solutions, contact sales.</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs">

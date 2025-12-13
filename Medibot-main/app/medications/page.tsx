@@ -14,8 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Menu, Plus, Pill, Clock, Trash2, Edit, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-  import { getMessaging, getToken, onMessage } from "firebase/messaging";
-  import {  setDoc } from "firebase/firestore";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { setDoc } from "firebase/firestore";
 import {
   addMedication,
   updateMedication,
@@ -51,86 +51,16 @@ export default function MedicationsPage() {
 
   // FCM token collection and saving logic
 
+  /* Notification logic disabled per user request
   useEffect(() => {
     async function saveFcmToken(userId: string) {
-      try {
-        console.log("Requesting notification permission...");
-        const messaging = getMessaging();
-        const permission = await Notification.requestPermission();
-        console.log("Notification permission:", permission);
-        
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-          try {
-            // Force update by unregistering first
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (let registration of registrations) {
-              if (registration.scope.includes('firebase-messaging-sw')) {
-                await registration.unregister();
-              }
-            }
-            
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-              updateViaCache: 'none'
-            });
-            console.log('Service Worker registered:', registration);
-            
-            // Wait for service worker to be ready
-            await navigator.serviceWorker.ready;
-            console.log('Service Worker is ready');
-          } catch (swError) {
-            console.error('Service Worker registration failed:', swError);
-          }
-        }
-        
-        if (permission === "granted") {
-          console.log("Getting FCM token...");
-          const fcmToken = await getToken(messaging, { vapidKey: "BMxZwmRm6QusAkd3tzvysDAZB8ReTuJVSQQHdc50nh6WCkN4Ja11FPpKLNwJuHKZUJwzsyKIciT1yKLpePHLDaE" });
-          console.log("FCM token received:", fcmToken ? "Yes" : "No");
-          
-          if (fcmToken) {
-            await setDoc(doc(db, "users", userId), { fcmToken }, { merge: true });
-            console.log("FCM token saved to Firestore");
-            
-            // Handle foreground messages
-            onMessage(messaging, (payload) => {
-              console.log('Foreground FCM message received:', payload);
-              
-              // Show browser notification for foreground messages
-              if (Notification.permission === 'granted') {
-                const title = payload.notification?.title || payload.data?.title || 'MediBot Reminder';
-                const body = payload.notification?.body || payload.data?.body || 'You have a medication reminder';
-                
-                console.log('Showing foreground notification:', title, body);
-                
-                const notification = new Notification(title, {
-                  body: body,
-                  icon: '/logo.png',
-                  tag: 'medication-reminder-fg-' + Date.now(),
-                  requireInteraction: true
-                });
-                
-                // Auto close after 10 seconds
-                setTimeout(() => {
-                  notification.close();
-                }, 10000);
-              }
-            });
-            
-          } else {
-            console.error("No FCM token received");
-          }
-        } else {
-          console.warn("Notification permission not granted:", permission);
-        }
-      } catch (err) {
-        console.error("FCM token error:", err);
-      }
+      // ... (Implementation commented out)
     }
     if (user?.uid) {
-      saveFcmToken(user.uid);
+      // saveFcmToken(user.uid);
     }
   }, [user]);
+  */
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -144,7 +74,7 @@ export default function MedicationsPage() {
     const handleVisibilityChange = () => {
       if (!document.hidden && user?.email) {
         console.log("🔄 App focused - checking for missed reminders...");
-        
+
         // Reschedule all active medications when app becomes visible
         medications.forEach((med) => {
           if (med.reminderTimes.length) {
@@ -157,7 +87,7 @@ export default function MedicationsPage() {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Also handle window focus for additional reliability
     const handleFocus = () => {
       if (user?.email) {
@@ -189,7 +119,7 @@ export default function MedicationsPage() {
         console.log("🔔 Client-side reminder check...");
         const response = await fetch('/api/check-reminders');
         const result = await response.json();
-        
+
         if (result.success && result.processed > 0) {
           console.log(`✅ Processed ${result.processed} reminders from client`);
         }
@@ -200,7 +130,7 @@ export default function MedicationsPage() {
 
     // Check immediately when component mounts
     checkForDueReminders();
-    
+
     // Then check every 5 minutes while app is open
     const intervalId = setInterval(checkForDueReminders, 5 * 60 * 1000);
 
@@ -208,28 +138,31 @@ export default function MedicationsPage() {
   }, [user?.uid]);
 
   const sendMobileNotification = async (userId: string, title: string, body: string) => {
-  try {
-    // Fetch user's FCM token from Firestore
-    const userDoc = await getDoc(doc(db, "users", userId));
-    const fcmToken = userDoc.data()?.fcmToken;
-    console.log("FCM token found:", fcmToken ? "Yes" : "No");
-    if (!fcmToken) throw new Error("No FCM token found for user");
+    try {
+      // Fetch user's FCM token from Firestore
+      const userDoc = await getDoc(doc(db, "users", userId));
+      const fcmToken = userDoc.data()?.fcmToken;
+      console.log("FCM token found:", fcmToken ? "Yes" : "No");
+      if (!fcmToken) {
+        console.log("No FCM token found for user. Skipping push notification.");
+        return;
+      }
 
-    // Call backend API to send push notification
-    console.log("Sending push notification:", { title, body });
-    const response = await fetch("/api/send-push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: fcmToken, title, body }),
-    });
-    const result = await response.json();
-    console.log("Push notification result:", result);
-    if (!result.success) throw new Error(result.error || "Push notification failed");
-    toast.success("Push notification sent!");
-  } catch (err) {
-    console.error("Push notification error:", err);
-    toast.error("Failed to send push notification");
-  }
+      // Call backend API to send push notification
+      console.log("Sending push notification:", { title, body });
+      const response = await fetch("/api/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: fcmToken, title, body }),
+      });
+      const result = await response.json();
+      console.log("Push notification result:", result);
+      if (!result.success) throw new Error(result.error || "Push notification failed");
+      toast.success("Push notification sent!");
+    } catch (err) {
+      console.error("Push notification error:", err);
+      toast.error("Failed to send push notification");
+    }
   };
 
   const sendEmailNotification = async (email: string, subject: string, body: string) => {
@@ -237,11 +170,11 @@ export default function MedicationsPage() {
       console.log("Sending email to:", email);
       console.log("Email subject:", subject);
       console.log("Email body:", body);
-      
+
       if (!email || !email.includes('@')) {
         throw new Error("Invalid email address provided");
       }
-      
+
       const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -277,7 +210,7 @@ export default function MedicationsPage() {
       if (!result?.success) {
         throw new Error(result?.message || "Email sending was not successful");
       }
-      
+
       console.log("Email sent successfully to:", email);
       return result;
     } catch (error) {
@@ -302,7 +235,7 @@ export default function MedicationsPage() {
 
     try {
       console.log("🔔 Scheduling hybrid reminders for:", medication.name);
-      
+
       // Store reminders in Firestore for backup/sync
       const response = await fetch("/api/schedule-reminder", {
         method: "POST",
@@ -317,13 +250,13 @@ export default function MedicationsPage() {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log("✅ Server-side backup scheduled:", medication.name);
-        
+
         // Also schedule precise browser-based reminders
         scheduleBrowserReminders(medication, email);
-        
+
         toast.success(`Reminders scheduled for ${medication.name}`);
       } else {
         console.error("❌ Failed to schedule server backup:", result.error);
@@ -347,7 +280,7 @@ export default function MedicationsPage() {
 
     medication.reminderTimes.forEach((time, index) => {
       const [hours, minutes] = time.split(":").map(Number);
-      
+
       const scheduleNext = () => {
         const now = new Date();
         const reminder = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
@@ -362,19 +295,19 @@ export default function MedicationsPage() {
 
         const timeoutId = setTimeout(async () => {
           const message = `💊 Time to take your ${medication.name} (${medication.dosage})`;
-          
+
           try {
             // Send both mobile push and email notifications
             await Promise.all([
               sendMobileNotification(user!.uid, `Medication Reminder: ${medication.name}`, message),
               sendEmailNotification(email, `Medication Reminder: ${medication.name}`, message),
             ]);
-            
+
             console.log("✅ Reminder notifications sent for:", medication.name);
-            
+
             // Schedule next day's reminder
             scheduleNext();
-            
+
           } catch (err) {
             console.error("❌ Error sending notifications:", err);
             // Still schedule next reminder even if sending fails
@@ -401,7 +334,7 @@ export default function MedicationsPage() {
   const cancelReminders = async (medicationId: string) => {
     try {
       console.log("🚫 Cancelling reminders for:", medicationId);
-      
+
       // Cancel server-side reminders
       const response = await fetch("/api/schedule-reminder", {
         method: "DELETE",
@@ -410,7 +343,7 @@ export default function MedicationsPage() {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         console.log("✅ Server-side reminders cancelled");
       } else {
@@ -419,7 +352,7 @@ export default function MedicationsPage() {
     } catch (error) {
       console.error("❌ Error cancelling server reminders:", error);
     }
-    
+
     // Always cancel browser-side reminders
     cancelBrowserReminders(medicationId);
   };
@@ -589,11 +522,11 @@ export default function MedicationsPage() {
         toast.error("User not authenticated");
         return;
       }
-      
+
       // Debug logs to check user email
       console.log("Current user:", user);
       console.log("User email:", user.email);
-      
+
       const message = `🧪 This is a medication reminder for your medication ${medication.name} (${medication.dosage}). 💊`;
       const notifications = [
         sendMobileNotification(user.uid, "Medication Reminder", message),
@@ -633,7 +566,7 @@ export default function MedicationsPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-[#a855f7]">Manage Your Medications</h1>
             <p className="text-muted-foreground mt-1 mb-6">Track your medications and set reminders</p>
-           
+
           </div>
 
           <div className="relative max-w-2xl mx-auto mb-8">

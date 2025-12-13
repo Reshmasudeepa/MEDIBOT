@@ -2,72 +2,44 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Define helper for Gmail sending to reuse logic
+async function sendViaGmail(to: string, subject: string, html: string) {
+  // Use environment variables for Gmail
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
 
-// Fallback Gmail SMTP configuration
-const createGmailTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
+  if (!user || !pass) {
+    throw new Error("Gmail credentials (EMAIL_USER, EMAIL_PASS) are missing");
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user,
+      pass,
     },
   });
-};
 
-// Function to send email via Gmail SMTP as fallback
-const sendViaGmail = async (to: string, subject: string, htmlContent: string) => {
-  console.log("Attempting to send email via Gmail SMTP fallback...");
-  
-  const transporter = createGmailTransporter();
-  
-  const mailOptions = {
-    from: `MediBot <${process.env.EMAIL_USER}>`,
+  return await transporter.sendMail({
+    from: `"MediBot" <${user}>`,
     to,
     subject,
-    html: htmlContent,
-  };
-
-  const result = await transporter.sendMail(mailOptions);
-  console.log("Gmail SMTP result:", result);
-  return result;
-};
+    html,
+  });
+}
 
 export async function POST(req: Request) {
   try {
     const { to, subject, message } = await req.json();
-    
-    console.log("Email API received:");
-    console.log("To:", to);
-    console.log("Subject:", subject);
-    console.log("Message:", message);
-    
-    // Validate input
-    if (!to || typeof to !== 'string' || !to.includes('@')) {
-      console.error("Invalid email address:", to);
+
+    if (!to || !subject || !message) {
       return NextResponse.json(
-        { success: false, message: "Invalid email address provided" },
+        { success: false, message: "Missing required fields" },
         { status: 400 }
-      );
-    }
-    
-    if (!subject || !message) {
-      console.error("Missing subject or message");
-      return NextResponse.json(
-        { success: false, message: "Subject and message are required" },
-        { status: 400 }
-      );
-    }
-    
-    // Check if RESEND_API_KEY is configured
-    if (!process.env.RESEND_API_KEY) {
-      console.error("RESEND_API_KEY is not configured");
-      return NextResponse.json(
-        { success: false, message: "Email service not configured" },
-        { status: 500 }
       );
     }
 
+    // Construct HTML content
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -76,7 +48,6 @@ export async function POST(req: Request) {
     <title>${subject}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      /* Base styles */
       body, html {
         margin: 0;
         padding: 0;
@@ -87,13 +58,10 @@ export async function POST(req: Request) {
         color: #334155;
         line-height: 1.6;
       }
-      
-      /* Container styles */
       .email-wrapper {
         width: 100%;
         height: 100%;
       }
-      
       .email-container {
         background-color: #ffffff;
         max-width: 600px;
@@ -103,14 +71,11 @@ export async function POST(req: Request) {
         overflow: hidden;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
       }
-      
-      /* Header styles */
       .header {
         background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
         padding: 30px 0;
         text-align: center;
       }
-      
       .logo-container {
         background-color: white;
         width: 80px;
@@ -122,13 +87,11 @@ export async function POST(req: Request) {
         margin: 0 auto;
         box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
       }
-      
       .logo {
         color: #4f46e5;
         font-size: 40px;
         font-weight: bold;
       }
-      
       .brand-name {
         color: white;
         font-size: 24px;
@@ -136,19 +99,15 @@ export async function POST(req: Request) {
         margin-top: 15px;
         letter-spacing: 0.5px;
       }
-      
-      /* Content styles */
       .content {
         padding: 40px;
       }
-      
       .greeting {
         font-size: 20px;
         font-weight: 600;
         margin-bottom: 25px;
         color: #1e293b;
       }
-      
       .message-container {
         background-color: #f1f5f9;
         border-left: 4px solid #4f46e5;
@@ -156,7 +115,6 @@ export async function POST(req: Request) {
         border-radius: 0 8px 8px 0;
         margin: 25px 0;
       }
-      
       .message-label {
         font-size: 14px;
         font-weight: 600;
@@ -165,18 +123,15 @@ export async function POST(req: Request) {
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
-      
       .message-content {
         font-size: 16px;
         color: #1e293b;
         line-height: 1.7;
       }
-      
       .cta-container {
         text-align: center;
         margin: 30px 0;
       }
-      
       .cta-button {
         display: inline-block;
         background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -189,72 +144,21 @@ export async function POST(req: Request) {
         box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
         transition: all 0.3s ease;
       }
-      
-      .cta-button:hover {
-        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
-        transform: translateY(-2px);
-      }
-      
-      /* Footer styles */
       .footer {
         background-color: #f8fafc;
         padding: 25px 40px;
         text-align: center;
         border-top: 1px solid #e2e8f0;
       }
-      
       .footer-text {
         font-size: 14px;
         color: #64748b;
         margin-bottom: 15px;
       }
-      
-      .footer-links {
-        margin-bottom: 15px;
-      }
-      
-      .footer-link {
-        color: #4f46e5;
-        text-decoration: none;
-        font-size: 14px;
-        margin: 0 12px;
-        transition: color 0.2s ease;
-      }
-      
-      .footer-link:hover {
-        color: #7c3aed;
-        text-decoration: underline;
-      }
-      
       .copyright {
         font-size: 12px;
         color: #94a3b8;
         margin-top: 15px;
-      }
-      
-      /* Responsive adjustments */
-      @media (max-width: 650px) {
-        .content {
-          padding: 30px 25px;
-        }
-        
-        .header {
-          padding: 25px 0;
-        }
-        
-        .logo-container {
-          width: 70px;
-          height: 70px;
-        }
-        
-        .logo {
-          font-size: 32px;
-        }
-        
-        .cta-button {
-          padding: 12px 25px;
-          font-size: 15px;
-        }
       }
     </style>
   </head>
@@ -263,48 +167,25 @@ export async function POST(req: Request) {
       <tr>
         <td align="center" valign="middle">
           <div class="email-container">
-            <!-- Header with branding -->
             <div class="header">
               <div class="logo-container">
                 <div class="logo">M</div>
               </div>
               <div class="brand-name">MediBot</div>
             </div>
-            
-            <!-- Content area -->
             <div class="content">
               <h1 class="greeting">Hello ${to?.split("@")[0] || "there"},</h1>
-              
-              <p>You have a reminder from MediBot:</p>
-              
               <div class="message-container">
-                <div class="message-label">Your Reminder</div>
+                <div class="message-label">Notification</div>
                 <div class="message-content">${message}</div>
               </div>
-              
-              <p>If you have any questions or need to adjust this reminder, please visit your MediBot dashboard.</p>
-              
               <div class="cta-container">
                 <a href="https://medibot-ai.com/dashboard" class="cta-button">Go to Dashboard</a>
               </div>
-              
-              <p>If you didn't request this reminder, you can safely ignore this email or contact our support team.</p>
-              
-              <p>Best regards,<br /><strong>The MediBot Team</strong></p>
             </div>
-            
-            <!-- Footer -->
             <div class="footer">
               <p class="footer-text">Need help? We're here for you.</p>
-              
-              <div class="footer-links">
-                <a href="https://medibot-ai.com/help" class="footer-link">Help Center</a>
-                <a href="https://medibot-ai.com/contact" class="footer-link">Contact Us</a>
-                <a href="https://medibot-ai.com/privacy" class="footer-link">Privacy Policy</a>
-              </div>
-              
-              <p class="copyright">© ${new Date().getFullYear()} MediBot. All rights reserved.<br />
-              You are receiving this email because you have an account with MediBot.</p>
+              <p class="copyright">© ${new Date().getFullYear()} MediBot. All rights reserved.</p>
             </div>
           </div>
         </td>
@@ -314,7 +195,7 @@ export async function POST(req: Request) {
 </html>
 `;
 
-    // Check if RESEND_API_KEY is configured
+    // Try Gmail as primary if RESEND_API_KEY is missing
     if (!process.env.RESEND_API_KEY) {
       console.log("RESEND_API_KEY not configured, using Gmail SMTP...");
       try {
@@ -335,31 +216,22 @@ export async function POST(req: Request) {
     }
 
     console.log("Attempting to send email via Resend API...");
-    
+    // Only import and use Resend if key exists
+    const resendClient = new Resend(process.env.RESEND_API_KEY);
+
     // Use verified email from environment variables
     const fromEmail = process.env.NEXT_PUBLIC_FROM_EMAIL || "onboarding@resend.dev";
-    console.log("Using from email:", fromEmail);
-    
+
     try {
-      const { data, error } = await resend.emails.send({
+      const { data, error } = await resendClient.emails.send({
         from: `MediBot <${fromEmail}>`,
         to,
         subject,
         html: htmlContent,
       });
 
-      console.log("Resend API Response:");
-      console.log("Data:", JSON.stringify(data, null, 2));
-      console.log("Error:", JSON.stringify(error, null, 2));
-
       if (error) {
-        console.error("Resend API Error Details:", {
-          message: error.message,
-          name: error.name,
-          type: typeof error,
-          fullError: error
-        });
-        
+        console.error("Resend API Error:", error);
         // Try Gmail as fallback
         console.log("Resend failed, trying Gmail SMTP fallback...");
         try {
@@ -370,23 +242,11 @@ export async function POST(req: Request) {
             data: result,
           });
         } catch (gmailError) {
-          console.error("Gmail SMTP fallback also failed:", gmailError);
-          
-          // Handle specific Resend errors
-          let errorMessage = "Unknown email service error";
-          if (error.message) {
-            errorMessage = error.message;
-          } else if (error.name) {
-            errorMessage = error.name;
-          } else if (typeof error === 'string') {
-            errorMessage = error;
-          }
-          
+          const errorMessage = error.message || "Unknown Resend error";
           return NextResponse.json(
-            { 
-              success: false, 
+            {
+              success: false,
               message: `Both email services failed. Resend: ${errorMessage}, Gmail: ${gmailError instanceof Error ? gmailError.message : String(gmailError)}`,
-              errorType: error.name || 'ResendError'
             },
             { status: 500 }
           );
@@ -401,7 +261,7 @@ export async function POST(req: Request) {
       });
     } catch (resendError) {
       console.error("Resend API exception:", resendError);
-      
+
       // Try Gmail as fallback
       console.log("Resend threw exception, trying Gmail SMTP fallback...");
       try {
@@ -415,10 +275,10 @@ export async function POST(req: Request) {
         console.error("Gmail SMTP fallback also failed:", gmailError);
         const resendErrorMsg = resendError instanceof Error ? resendError.message : String(resendError);
         const gmailErrorMsg = gmailError instanceof Error ? gmailError.message : String(gmailError);
-        
+
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             message: `Both email services failed. Resend: ${resendErrorMsg}, Gmail: ${gmailErrorMsg}`,
           },
           { status: 500 }

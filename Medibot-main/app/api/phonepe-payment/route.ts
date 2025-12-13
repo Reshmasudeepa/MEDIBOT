@@ -6,6 +6,8 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { credential } from "firebase-admin";
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 const { StandardCheckoutClient, Env, StandardCheckoutPayRequest } = require("pg-sdk-node");
 
 // Initialize Firebase Admin
@@ -62,16 +64,26 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log("[PhonePe] Incoming request body:", body);
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://medibot-ai.com";
     const { amount, userId, planName } = body;
 
     // Validate required fields
     if (!phonepeClient) {
+      const debugInfo = {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        envSetting,
+        sdkImported: !!StandardCheckoutClient,
+      };
+      console.error("PhonePe Init Error - Debug Info:", debugInfo);
+
       return NextResponse.json(
         {
           success: false,
-          message: "PhonePe client not initialized. Check environment variables.",
+          message: "PhonePe client not initialized.",
+          debug: debugInfo,
+          error: "Check server logs for initialization details"
         },
         { status: 500 }
       );
@@ -133,7 +145,7 @@ export async function POST(req: NextRequest) {
       }
 
       console.log(`Successfully initiated payment for user ${userId}, plan ${planName}`);
-      
+
       return NextResponse.json({
         success: true,
         data: {

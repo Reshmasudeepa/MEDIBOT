@@ -770,7 +770,7 @@ export default function CollaborationsPage() {
             <span className="text-xl font-bold text-[#00796b]">MediBot</span>
           </div>
           <p className="text-[#546e7a]">
-            © {new Date().getFullYear()} MediBot by Asvix. All rights reserved. | In collaboration with Dr. Saikat Gochhait
+            © {new Date().getFullYear()} MediBot. All rights reserved. | In collaboration with Dr. Saikat Gochhait
           </p>
         </div>
       </footer>

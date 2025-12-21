@@ -1298,7 +1298,7 @@ export default function HomePage() {
 
           <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
             <p className="text-[#0F766E] mb-4 md:mb-0">
-              © {new Date().getFullYear()} MediBot by Asvix. All rights reserved.
+              © {new Date().getFullYear()} MediBot. All rights reserved.
             </p>
             <div className="flex space-x-6">
               <Link href="#" className="text-[#0F766E] hover:text-[#0E7490] transition-colors">

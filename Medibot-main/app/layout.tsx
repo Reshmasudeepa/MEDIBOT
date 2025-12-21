@@ -3,13 +3,11 @@ import React from "react";
 import { SmoothNavigator, GlobalSkeletonLoader } from "../components/SmoothNavigator";
 import { LoadingProvider } from "@/components/LoadingContext";
 import CookieConsent from "@/components/CookieConsent";
-import Head from "next/head";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-
-
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -107,16 +105,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <Head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="mobile-web-app-capable" content="yes" />
-
+      <body suppressHydrationWarning className={`${inter.className} bg-background text-foreground min-h-screen fade-in`} style={{ zIndex: 0 }}>
         {/* Google Analytics */}
-        <script
-          async
+        <Script
+          strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"
         />
-        <script
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -197,8 +194,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })
           }}
         />
-      </Head>
-      <body suppressHydrationWarning className={`${inter.className} bg-background text-foreground min-h-screen fade-in`} style={{ zIndex: 0 }}>
+
         <LoadingProvider>
           <ThemeProvider
             attribute="class"
